@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Chat with AI - Cyberpunk Edition</title>
+  <style>
+    /* Styling for the body of the page */
+    body {
+      background-color: #0d0d0d;
+      color: #00aaff;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Container for the form and response cards */
+    .container {
+      margin-top: 50px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0px 0px 20px #00aaff;
+    }
+
+    /* Styling for the header */
+    h2 {
+      color: #ff0066;
+      text-shadow: 0px 0px 10px #ff0066;
+    }
+
+    /* Styling for the form label */
+    .form-label {
+      color: #00aaff;
+    }
+
+    /* Styling for the submit button */
+    .btn-primary {
+      background-color: #ff0066;
+      border: none;
+      box-shadow: 0px 0px 10px #ff0066;
+    }
+
+    .btn-primary:hover {
+      background-color: #ff3399;
+    }
+
+    /* Styling for the response container */
+    #response {
+      margin-top: 20px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      box-shadow: 0px 0px 15px #00aaff;
+      color: #ffffff;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    /* Styling for each response card */
+    .card {
+      background-color: #ffffff;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      text-align: justify;
+      position: relative;
+      opacity: 1;
+      transform: translateY(50px);
+      transition: all 0.5s ease-in-out;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      cursor: pointer;
+    }
+
+    /* Hover effect for the cards */
+    .card:hover {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      transform: translateY(0) scale(1.05);
+    }
+
+    /* Styling for the modal pop-up */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.9);
+    }
+
+    .modal-content {
+      background-color: #0d0d0d;
+      padding: 20px;
+      border: 1px solid #00aaff;
+      width: 60%;
+      max-width: 800px;
+      margin: auto;
+      margin-top: 5%;
+      border-radius: 15px;
+      box-shadow: 0px 0px 20px #00aaff;
+      color: #00aaff;
+    }
+
+    .close {
+      color: #ff0066;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #ff3399;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* Styling for the small cards inside the modal */
+    .small-card {
+      background-color: #ffffff;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 200px;
+      min-height: 150px;
+      text-align: center;
+      border-radius: 5px;
+      transition: transform 0.3s;
+      margin: 10px;
+      display: inline-flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      word-wrap: break-word;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .small-card:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Ask the EDG3</h2>
+    <div class="mb-3">
+      <label for="userInput" class="form-label">Enter your prompt:</label>
+      <input type="text" class="form-control" id="userInput">
+    </div>
+    <button class="btn btn-primary" onclick="sendPrompt()">Submit</button>
+    <div class="mt-4" id="response"></div>
+  </div>
+
+  <!-- Modal for expanded card view -->
+  <div id="myModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <div id="expandedCardContent"></div>
+    </div>
+  </div>
+
+  <script>
+    // Function to handle the user prompt submission
+    function sendPrompt() {
+      const userPrompt = document.getElementById("userInput").value;
+      makeApiCall(userPrompt, renderCards); // Make an API call with the user's prompt
+    }
+
+    // Function to make an API call to the server with the user's prompt
+    function makeApiCall(prompt, callback) {
+      fetch('http://127.0.0.1:5000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prompt: prompt }) // Send the prompt in the request body
+      })
+      .then(response => response.json()) // Parse the response as JSON
+      .then(data => {
+        console.log("API Response:", data); // Log the full API response for debugging
+        if (data.response) {
+          // Split the response into separate lines that match a numbered pattern
+          const parsedData = data.response.split('\n').filter(line => line.trim() !== '' && /^\d+\./.test(line.trim()));
+          console.log("Parsed Data:", parsedData); // Log the parsed data for debugging
+          callback(parsedData); // Pass parsed data to the callback function
+        } else {
+          // Display an error message if the response format is not as expected
+          document.getElementById("response").innerText = "Error: Response data is not in the expected format.";
+        }
+      })
+      .catch(error => {
+        // Display an error message if there is an issue with the API call
+        document.getElementById("response").innerText = "Error: " + error;
+      });
+    }
+
+    // Function to render the response data as cards
+    function renderCards(data) {
+      const container = document.getElementById('response');
+      container.innerHTML = ''; // Clear the previous response
+
+      // Create cards for each piece of data
+      data.forEach((text) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.textContent = text;
+        card.onclick = () => {
+          // Open the modal immediately with a loading message
+          openModal(["Loading..."]);
+          // Make an API call with a fixed prompt when the card is clicked
+          makeApiCall("How to do it", (newData) => {
+            updateModalContent(newData);
+          });
+        };
+        container.appendChild(card); // Add the card to the response container
+      });
+    }
+
+    // Function to open the modal with additional information
+    function openModal(newData) {
+      const modal = document.getElementById("myModal");
+      const expandedContent = document.getElementById("expandedCardContent");
+      expandedContent.innerHTML = ''; // Clear previous content
+
+      // Create small cards for each piece of new data
+      newData.forEach((text) => {
+        const smallCard = document.createElement('div');
+        smallCard.className = 'small-card';
+        smallCard.textContent = text;
+        expandedContent.appendChild(smallCard); // Add small card to the expanded container
+      });
+
+      // Display the modal immediately
+      modal.style.display = "block";
+    }
+
+    // Function to close the modal
+    function closeModal() {
+      const modal = document.getElementById("myModal");
+      modal.style.display = "none";
+    }
+
+    // Function to update modal content after data is fetched
+    function updateModalContent(newData) {
+      const expandedContent = document.getElementById("expandedCardContent");
+      expandedContent.innerHTML = ''; // Clear previous content
+
+      // Create small cards for each piece of new data
+      newData.forEach((text) => {
+        const smallCard = document.createElement('div');
+        smallCard.className = 'small-card';
+        smallCard.textContent = text;
+        expandedContent.appendChild(smallCard); // Add small card to the expanded container
+      });
+    }
+
+    // Close the modal if the user clicks outside of it
+    window.onclick = function(event) {
+      const modal = document.getElementById("myModal");
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>
